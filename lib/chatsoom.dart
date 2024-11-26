@@ -23,7 +23,7 @@ class _ChatGptAppState extends State<ChatGptApp> {
   void initState() {
     super.initState();
     Gemini.init(
-        apiKey: "AIzaSyAaeypz83jbE3iImpjmmaxA_OrF0v9rk2c"); // 실제 API 키 입력
+        apiKey: "//"); // 실제 API 키 입력
 
     // 앱이 시작될 때 첫 번째 질문 자동 전송
     _sendInitialMessage();
