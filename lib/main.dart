@@ -3,46 +3,15 @@ import 'package:provider/provider.dart'; // Provider 패키지 추가
 import 'soom.dart';
 import 'smart_routine.dart';
 import 'diffuser_state.dart'; // DiffuserState 클래스 import
-import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // 알림 플러그인 import
-
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  const DarwinInitializationSettings initializationSettingsDarwin =
-      DarwinInitializationSettings(
-    requestAlertPermission: true,
-    requestBadgePermission: true,
-    requestSoundPermission: true,
-  );
-
-  const InitializationSettings initializationSettings =
-      InitializationSettings(iOS: initializationSettingsDarwin);
-
-  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
   runApp(
     ChangeNotifierProvider(
       create: (context) => DiffuserState(),
       child: const MyApp(),
     ),
-  );
-}
-
-Future<void> showNotification() async {
-  const DarwinNotificationDetails darwinNotificationDetails =
-      DarwinNotificationDetails();
-
-  const NotificationDetails platformChannelSpecifics =
-      NotificationDetails(iOS: darwinNotificationDetails);
-
-  await flutterLocalNotificationsPlugin.show(
-    0,
-    '테스트 알림',
-    '이것은 iOS 환경에서의 테스트 알림입니다.',
-    platformChannelSpecifics,
   );
 }
 
