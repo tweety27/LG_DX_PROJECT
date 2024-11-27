@@ -1,7 +1,9 @@
+import 'package:soom/firebase_service.dart';
 import 'package:soom/models/message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'modal.dart';
+import 'firebase_recipes.dart';
 
 class ChatGptApp extends StatefulWidget {
   ChatGptApp({super.key});
@@ -18,12 +20,15 @@ class _ChatGptAppState extends State<ChatGptApp> {
   ChatRoom _room = ChatRoom(chats: [], createdAt: DateTime.now());
   bool _isLoading = false;
   bool _isButtonDisabled = false; // 예 아니오 버튼 비활성화
+  final FirebaseRecipes _firebaseRecipes = FirebaseRecipes(); // FirebaseService 인스턴스 생성
+  final FirebaseService _firebaseService = FirebaseService();
+  String _userId = 'user_1';
 
   @override
   void initState() {
     super.initState();
     Gemini.init(
-        apiKey: "//"); // 실제 API 키 입력
+        apiKey: "AIzaSyAaeypz83jbE3iImpjmmaxA_OrF0v9rk2c"); // 실제 API 키 입력
 
     // 앱이 시작될 때 첫 번째 질문 자동 전송
     _sendInitialMessage();
@@ -120,7 +125,11 @@ class _ChatGptAppState extends State<ChatGptApp> {
       "노트",
       "추천드립니다",
       "추천합니다",
-      "추천해드립니다"
+      "추천해드립니다",
+      "오일",
+      "비율",
+      "%",
+      "레시피"
     ];
     final bool isRecommendationMessage =
         keywords.any((keyword) => chat.text.contains(keyword));
@@ -412,8 +421,8 @@ class _ChatGptAppState extends State<ChatGptApp> {
     );
   }
 
-  // 사용자가 메시지를 보낼 때
-  void _sendMessage() {
+  // 메시지 전송 함수
+  void _sendMessage() async {
     _focusNode.unfocus();
 
     if (_controller.text.trim().isEmpty) {
@@ -432,10 +441,17 @@ class _ChatGptAppState extends State<ChatGptApp> {
       _isLoading = true;
     });
 
-    String question = _controller.text;
-    question +=
-        "사용자 응답에 대한 반응을 한 문장으로 말해줘. 그리고 사용자 응답을 바탕으로 추천하는 향에 대해 향의 이름, 향에 대한 설명, top, middle, base에 들어가는 원료를 순서대로 알려줘. 특수기호 안 넣고 말해줘.";
+    // Firebase 데이터 가져오기
+    List<Map<String, dynamic>> recipes = await _firebaseRecipes.fetchScentRecipes();
 
+    // Firebase 데이터 기반의 메시지 생성
+    String firebaseData = recipes.map((recipe) {
+      return "Name: ${recipe['name']}, Oils: ${recipe['oils']}, Percentages: ${recipe['percentage']}";
+    }).join("\n");
+
+    String question = "${_controller.text}\nAvailable Recipes:\n$firebaseData\n사용자가 만들고 싶은 향에 대한 반응이나 기분에 대한 공감 반응을 먼저 출력하고 어울리는 레시피를 두번째 줄에서 하나만 찾아서 향의 이름, percentage를 포함한 레시피를 출력해줘\n응답 형식 예시는 오늘은 기분이 좋으시군요!\n여기에 어울리는 향을 추천해드릴게요.\nname: Lemon\noils: 레몬그라스, 클라리세이지, 라벤더\npercentage: 15%, 40%, 45%";
+
+    // Gemini 호출
     Gemini.instance.streamGenerateContent(question).listen((event) {
       print(event.output);
       setState(() {
@@ -464,6 +480,7 @@ class _ChatGptAppState extends State<ChatGptApp> {
     _controller.clear();
   }
 
+
   // 첫 번째 질문 보내기
   void _sendInitialMessage() {
     String initialMessage = "은호님, 오늘 만들고 싶은 향이 있으신가요?";
@@ -477,7 +494,7 @@ class _ChatGptAppState extends State<ChatGptApp> {
     });
   }
 
-  void _handleCustomAction(String action) {
+  void _handleCustomAction(String action) async {
     setState(() {
       // 사용자가 선택한 액션을 추가
       _room.chats.add(ChatMessage(
@@ -486,6 +503,22 @@ class _ChatGptAppState extends State<ChatGptApp> {
         sentAt: DateTime.now(),
       ));
     });
+
+    // 마지막 gemini 응답 가져오기
+    String lastGeminiResponse = _room.chats.lastWhere((chat) => !chat.isMe).text;
+
+    // Gemini 응답 파싱하여 데이터 추출
+    Map<String, dynamic> parsedResponse = GeminiParser.parseResponse(lastGeminiResponse);
+
+    try {
+      // Firestore에 데이터 저장
+      await _firebaseService.saveScentToUserHistory(
+        userId: _userId, // 현재 사용자 ID
+        scentData: parsedResponse, // 파싱된 데이터
+      );
+    } catch (e) {
+      print("Error saving scent to Firestore: $e");
+    }
 
     // 조향하기/시향하기에 따른 추가 로직
     Future.delayed(Duration(seconds: 1), () {
@@ -510,18 +543,44 @@ class _ChatGptAppState extends State<ChatGptApp> {
   }
 
 // 모달창 호출 함수
-  void _showCustomModal(BuildContext context, String content) {
-    showDialog(
-      context: context,
-      barrierDismissible: true, // 모달 밖 클릭 시 닫힘
-      builder: (BuildContext context) {
-        return Modal(
-          content: content,
-          onClose: () {
-            Navigator.of(context).pop(); // 모달창 닫기
-          },
-        );
-      },
-    );
+void _showCustomModal(BuildContext context, String content) async {
+  // Gemini 응답에서 oils 추출
+  String lastGptResponse = _room.chats.lastWhere((chat) => !chat.isMe).text;
+  Map<String, dynamic> parsedResponse = GeminiParser.parseResponse(lastGptResponse);
+  List<String> oils = parsedResponse['oils']; // oils 이름만 리스트로 추출
+
+  // Firestore에서 각 oil의 색상 가져오기
+  List<Map<String, dynamic>> scents = [];
+  for (String oil in oils) {
+    Color? color = await _firebaseService.getOilColor(oil); // Firestore에서 색상 가져오기
+    if (color != null) {
+      scents.add({'name': oil, 'color': color});
+    } else {
+      scents.add({'name': oil, 'color': Colors.grey}); // 색상을 찾지 못한 경우 기본값
+    }
   }
+
+  // 모달 호출
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (BuildContext context) {
+      return Modal(
+        content: content,
+        scents: scents, // 동적으로 전달된 향료 데이터
+        onClose: () {
+          Navigator.of(context).pop(); // 모달창 닫기
+        },
+      );
+    },
+  );
+}
+
+
+// Firebase 에서 향료 색상 가져오기
+Color _getOilColor(String oilName) {
+  // Firestore에서 데이터를 가져오는 비동기 로직을 여기에 추가
+  // 예시: {'로즈마리': Color(0xffFF7570)}와 같은 색상 매핑 사용
+  return Color(0xffEFF0F4); // 기본 색상 반환
+}
 }

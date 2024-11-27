@@ -4,19 +4,21 @@ import 'secondmodal.dart';
 class Modal extends StatelessWidget {
   final String content; // 모달창의 내용
   final VoidCallback onClose; // 닫기 버튼 동작
+  final List<Map<String, dynamic>> scents; // 향료 데이터 받아오기
 
   // 향료 데이터를 리스트로 선언
-  final List<Map<String, dynamic>> scents = [
-    {'name': '로즈마리', 'color': Color(0xffFF7570)},
-    {'name': '파출리', 'color': Color(0xffAA9C80)},
-    {'name': '시더우드', 'color': Color(0xffC8BC9C)},
-    {'name': '라벤더', 'color': Color(0xffF596FF)},
-  ];
+  // final List<Map<String, dynamic>> scents = [
+  //   {'name': '로즈마리', 'color': Color(0xffFF7570)},
+  //   {'name': '파출리', 'color': Color(0xffAA9C80)},
+  //   {'name': '시더우드', 'color': Color(0xffC8BC9C)},
+  //   {'name': '라벤더', 'color': Color(0xffF596FF)},
+  // ];
 
   Modal({
     Key? key,
     required this.content,
     required this.onClose,
+    required this.scents,
   }) : super(key: key);
 
   @override
