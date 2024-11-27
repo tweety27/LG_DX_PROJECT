@@ -217,10 +217,17 @@ class _ChatGptAppState extends State<ChatGptApp> {
                           fixedSize: Size(110, 40),
                           backgroundColor: Colors.white,
                         ),
-                        onPressed: () => _showCustomModal(
-                          context,
-                          "스마트 센트 제품에\n해당 향료를 넣어주세요!",
-                        ),
+                        onPressed: () async {
+                          // 특정 동작 처리 (예: Firestore 저장, 상태 업데이트)
+                          _handleCustomAction("조향하기");
+
+                          // 모달 호출
+                          _showCustomModal(
+                            context,
+                            "스마트 센트 제품에\n해당 향료를 넣어주세요!",
+                          );
+                        },
+
                         child: Text(
                           "조향하기",
                           style: TextStyle(
@@ -237,10 +244,16 @@ class _ChatGptAppState extends State<ChatGptApp> {
                           fixedSize: Size(110, 40),
                           backgroundColor: Colors.white,
                         ),
-                        onPressed: () => _showCustomModal(
-                          context,
-                          "스마트 센트 제품에\n해당 향료를 넣어주세요!",
-                        ),
+                        onPressed: () async {
+                          // 특정 동작 처리 (예: Firestore 저장, 상태 업데이트)
+                          _handleCustomAction("조향하기");
+
+                          // 모달 호출
+                          _showCustomModal(
+                            context,
+                            "스마트 센트 제품에\n해당 향료를 넣어주세요!",
+                          );
+                        },
                         child: Text(
                           "시향하기",
                           style: TextStyle(
@@ -449,7 +462,7 @@ class _ChatGptAppState extends State<ChatGptApp> {
       return "Name: ${recipe['name']}, Oils: ${recipe['oils']}, Percentages: ${recipe['percentage']}";
     }).join("\n");
 
-    String question = "${_controller.text}\nAvailable Recipes:\n$firebaseData\n사용자가 만들고 싶은 향에 대한 반응이나 기분에 대한 공감 반응을 먼저 출력하고 어울리는 레시피를 두번째 줄에서 하나만 찾아서 향의 이름, percentage를 포함한 레시피를 출력해줘\n응답 형식 예시는 오늘은 기분이 좋으시군요!\n여기에 어울리는 향을 추천해드릴게요.\nname: Lemon\noils: 레몬그라스, 클라리세이지, 라벤더\npercentage: 15%, 40%, 45%";
+    String question = "${_controller.text}\nAvailable Recipes:\n$firebaseData\n사용자가 만들고 싶은 향에 대한 반응이나 기분에 대한 공감 반응을 먼저 출력하고 어울리는 레시피를 두번째 줄에서 하나만 찾아서 향의 이름, percentage를 포함한 레시피를 출력해줘\n응답 형식 예시는 오늘은 기분이 좋으시군요!\n여기에 어울리는 향을 추천해드릴게요.\nname: Lemon\noils: 레몬그라스, 클라리세이지, 라벤더\npercentage: 15%, 40%, 45%\n클라리세이지가 하나의 향료야";
 
     // Gemini 호출
     Gemini.instance.streamGenerateContent(question).listen((event) {
@@ -512,10 +525,12 @@ class _ChatGptAppState extends State<ChatGptApp> {
 
     try {
       // Firestore에 데이터 저장
+      print("저장 호출 시작");
       await _firebaseService.saveScentToUserHistory(
         userId: _userId, // 현재 사용자 ID
         scentData: parsedResponse, // 파싱된 데이터
       );
+      print("저장 성공");
     } catch (e) {
       print("Error saving scent to Firestore: $e");
     }

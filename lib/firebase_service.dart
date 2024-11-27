@@ -58,7 +58,7 @@ class FirebaseService {
           }
         ]),
       });
-      print("Scent successfully saved to user history!");
+      print("Firestore에 저장할 데이터: ${scentData}");
     } catch (e) {
       // 문서가 없을 경우 생성 후 저장
       if (e is FirebaseException && e.code == 'not-found') {
