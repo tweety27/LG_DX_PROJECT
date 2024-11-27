@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:soom/soom.dart';
 
 class SecondModal extends StatefulWidget {
   const SecondModal({Key? key}) : super(key: key);
@@ -61,7 +62,14 @@ class _SecondModalState extends State<SecondModal> {
 
                 // 확인 버튼
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(context).pop(); // 현재 모달 닫기
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SoomPage(),
+                      ),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     fixedSize: const Size(202, 44),
                     shape: RoundedRectangleBorder(
